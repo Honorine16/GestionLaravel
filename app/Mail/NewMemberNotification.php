@@ -13,14 +13,13 @@ use Illuminate\Queue\SerializesModels;
 class NewMemberNotification extends Mailable
 {
     use Queueable, SerializesModels;
-    public $newMemberName;
 
     /**
      * Create a new message instance.
      */
-    public function __construct($newMemberName)
+    public function __construct(private $group, private $user)
     {
-        $this->newMemberName = $newMemberName;
+        
     }
 
     /**
@@ -30,7 +29,7 @@ class NewMemberNotification extends Mailable
     {
         return new Envelope(
             subject: 'New Member Added To Your Group',
-            from: new Address('accounts@unetah.net', 'Message de Ajout dans un groupe de l\' application de gestion de fichiers')
+            from: new Address('accounts@unetah.net', 'Esther-send')
         );
     }
 
@@ -41,7 +40,10 @@ class NewMemberNotification extends Mailable
     {
         return new Content(
             view: 'emails.new_members_notification',
-            
+            with: [
+                'group' => $this->group->name,
+                'user' => $this->user->name,
+            ]
         );
     }
 

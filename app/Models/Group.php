@@ -18,7 +18,7 @@ class Group extends Model
     ];
 
 
-    protected function members()
+    public function members()
     {
         return $this->belongsToMany(User::class, 'group_members');
     }

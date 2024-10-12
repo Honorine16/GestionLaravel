@@ -23,11 +23,9 @@ Route::prefix('v1.0.0')->group(function () {
         Route::get('logout', [AuthController::class, 'logout']);
         Route::post('create', [GroupController::class, 'store']);
         Route::post('otp', [GroupController::class, 'verifyOTP']);
-        Route::get('/groups/{groupId}', [GroupController::class, 'showMember']);
-        Route::post('/groups/{groupId}/users', [GroupController::class, 'addUserToGroup']);
+        // Route::get('/groups/{groupId}', [GroupController::class, 'showMember']);
         Route::post('addMember/{groupId}', [GroupController::class, 'addMember']);
         Route::get('/groups', [GroupController::class, 'index']);
-        // Route::get('/groups/{userId}', [GroupController::class, 'show']);
 
 
 

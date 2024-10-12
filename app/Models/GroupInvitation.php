@@ -12,9 +12,14 @@ class GroupInvitation extends Model
     use HasFactory;
 
     protected $fillable = [
+        'group_id',
         'email',
-        'code',
+        'otp',
     ];
+
+public function group() {
+    return $this->belongsTo(Group::class);
+}
 
     protected function casts(): array
     {

@@ -33,7 +33,7 @@ class GroupInviteMail extends Mailable
     {
         return new Envelope(
             subject: 'Code d\'intégration d\'un groupe dans l\'Application de Gestion de Fichier',
-            from: new Address('accounts@unetah.net', 'Message du groupe dans l\'application de Gestion de Fichiers')
+            from: new Address('accounts@unetah.net', 'Esther-send')
         );
     }
 

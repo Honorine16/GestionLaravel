@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Events\UserAddedToGroup;
 use App\Http\Resources\UserResource;
 use App\Interfaces\GroupInterface;
 use App\Mail\FileUploadedNotification;
@@ -10,6 +11,7 @@ use App\Mail\NewMemberNotification;
 use App\Models\File;
 use App\Models\Group;
 use App\Models\GroupInvitation;
+use App\Models\GroupMember;
 use App\Models\User;
 use App\Responses\ApiResponse;
 use Illuminate\Http\Request;
@@ -88,116 +90,95 @@ class GroupController extends Controller
     public function addMember(Request $request, $groupId)
     {
         $request->validate([
-            'emails' => 'required',
-            // 'emails.*' => 'email',
+            'email' => 'required',
+
         ]);
 
 
         $group = Group::findOrFail($groupId);
         $otp = rand(000000, 999999);
-        $data = [
-            'name' => $request->name,
-            'email' => $request->emails,
-            'password' => $otp,
-        ];
 
-        // foreach ($request->emails as $email) {
-        $user = User::where('email', $data['email'])->first();
+
+
+        $user = User::where('email', ['email' => $request->email])->first();
 
         if ($user) {
-            // $group->members->attach($user->id);
+            $group->members()->attach($user->id);
+            //envoyer un message par mail pour informer de son ajout dans un groupe
+            Mail::to(['email' => $request->email])->send(new NewMemberNotification($group, $user));
+
+            //appeler la fonction qui notifie tous les membres
+            return ApiResponse::sendResponse(
+                true,
+                ['group' => $group, 'user' => $user],
+                'Membre ajouté avec succès',
+                201
+            );
         } else {
-            $user = User::create($data);
+            $data = [
+                'email' => $request->email,
+                'otp' => $otp,
+                'group_id' => $groupId,
+            ];
+            $inviteUser = GroupInvitation::create($data);
 
-            // $group->users->attach($user->id);
+
             Mail::to($data['email'])->send(new GroupInviteMail($group, $otp));
-            // }
-
-        }
 
 
-
-        // $existingMembers = $group->users;
-
-        // foreach ($existingMembers as $member) {
-        //     Mail::to($member->email)->send(new NewMemberNotification($user->name));
-        // }
-
-        return response()->json(['message' => 'Members added and notified.']);
-        foreach ($group->users as $member) {
-            if ($member->id !== $newMember->id) { // Évite de notifier le nouveau membre
-                $member->notify(new NewMemberNotification($newMember));
-            }
+            return ApiResponse::sendResponse(
+                true,
+                ['inviteUser' => $inviteUser,],
+                'Invitation envoyée',
+                201
+            );
         }
     }
 
-    public function addUserToGroup(Request $request, $groupId)
-    {
-        $request->validate([
-            'user_id' => 'required|exists:users,id',
-            'email' => 'required'
-        ]);
-
-        $group = Group::findOrFail($groupId);
-        $group->users()->attach($request->user_id);
-        
-
-        return response()->json(['message' => 'Membre ajouté avec succès dans le groupe.']);
-    }
-
-
-    public function showMember($groupId)
-    {
-        // Afficher un groupe spécifique avec ses membres
-        $group = Group::with('users')->findOrFail($groupId);
-        return response()->json($group);
-    }
+    // public function showMember($groupId)
+    // {
+    //     $group = GroupMember::with('users')->findOrFail($groupId);
+    //     return response()->json($group);
+    // }
 
     public function index()
     {
-
         $groups = Group::all();
         return response()->json($groups);
     }
 
-    // public function show()
+
+    // public function verifyOTP(Request $request, $groupId)
     // {
-    //     $member = Group::all();
-    //     return response()->json($member);
+    //     $group = [
+    //         'groupId' => $request->groupId,
+    //         'otp' => $request->code,
+    //     ];
+
+    //     DB::beginTransaction();
+    //     try {
+    //         $group = $this->groupInterface->verifyOTP($groupId);
+
+    //         DB::commit();
+    //         if (!$group) {
+
+    //             return ApiResponse::sendResponse(
+    //                 false,
+    //                 [],
+    //                 'Code de confirmation invalide.',
+    //                 200
+    //             );
+    //         }
+    //         return ApiResponse::sendResponse(
+    //             true,
+    //             [new UserResource($group)],
+    //             'Accès au groupe accordé !',
+    //             200
+    //         );
+    //     } catch (\Throwable $th) {
+    //         return ApiResponse::rollback($th);
+    //     }
     // }
-
-
-    public function verifyOTP(Request $request, $groupId)
-    {
-        $group = [
-            'groupId' => $request->groupId,
-            'otp' => $request->code,
-        ];
-
-        DB::beginTransaction();
-        try {
-            $group = $this->groupInterface->verifyOTP($groupId);
-
-            DB::commit();
-            if (!$group) {
-
-                return ApiResponse::sendResponse(
-                    false,
-                    [],
-                    'Code de confirmation invalide.',
-                    200
-                );
-            }
-            return ApiResponse::sendResponse(
-                true,
-                [new UserResource($group)],
-                'Accès au groupe accordé !',
-                200
-            );
-        } catch (\Throwable $th) {
-            return ApiResponse::rollback($th);
-        }
-    }
 
     public function logout()
     {
@@ -212,3 +193,5 @@ class GroupController extends Controller
         );
     }
 }
+
+  

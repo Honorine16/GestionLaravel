@@ -7,6 +7,8 @@ use App\Http\Requests\LoginRequest;
 use App\Http\Requests\RegisterRequest;
 use App\Http\Resources\UserResource;
 use App\Interfaces\AuthInterface;
+use App\Models\Group;
+use App\Models\GroupInvitation;
 use App\Models\User;
 use App\Responses\ApiResponse;
 use Illuminate\Http\Request;
@@ -32,6 +34,20 @@ class AuthController extends Controller
         DB::beginTransaction();
         try {
             $user = $this->authInterface->register($data);
+
+            $inviteUser = GroupInvitation::where('email', $data['email'])->first();
+
+        if ($inviteUser) {
+            $group = Group::findOrFail($inviteUser->group_id);
+            $user = User::where('email', $data['email'])->first();
+
+            if ($user) {
+
+                $group->members()->attach($user->id);
+            }
+
+            $inviteUser->delete();
+        }
 
             DB::commit();
 
